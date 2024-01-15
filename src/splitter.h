@@ -1,5 +1,5 @@
-#ifndef SPLITTER_H
-#define SPLITTER_H
+#ifndef THREAD_SPLITTER_H
+#define THREAD_SPLITTER_H
 
 #include <stdlib.h>
 #include <sys/sysinfo.h>
@@ -25,6 +25,7 @@ typedef struct split_return {
 } split_return;
 
 typedef void *(*TaskFunction)(void *);
+typedef void *(*ThreadSplitFunction)(void *);
 
 typedef struct {
   void *dataSegment;
@@ -34,9 +35,70 @@ typedef struct {
   TaskFunction func;
 } ThreadArgs;
 
+typedef struct thread_split_ret {
+  void **data;
+  size_t num_data;
+} thread_split_ret;
+
 split_info split_data(unsigned int num_elements, unsigned int num_buckets);
-#ifdef SPLITTER_IMPLEMENTATION
+#ifdef THREAD_SPLITTER_IMPLEMENTATION
 #include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+int threadFunc(void *arg) {
+  ThreadArgs *threadArgs = (ThreadArgs *)arg;
+  threadArgs->result = threadArgs->func(threadArgs);
+  return 0;
+}
+thread_split_ret thread_split(void *data, size_t dataSize, size_t elementSize,
+                              void *Args, ThreadSplitFunction func) {
+  int num_cores = get_nprocs();
+  thrd_t threads[num_cores];
+  ThreadArgs threadArgs[num_cores];
+  void **results = malloc(num_cores * sizeof(void *));
+
+  size_t segmentSize = dataSize / num_cores;
+  // get remainder so it can be spread among
+  // the threads
+  int segmentRemainder = dataSize % num_cores;
+
+  assert(dataSize > num_cores);
+  thread_split_ret return_struct = {0};
+  size_t offset = 0;
+  for (int i = 0; i < num_cores; i++) {
+    threadArgs[i].dataSegment = (char *)data + offset * elementSize;
+
+    // spread the work better, so average segment size is
+    // less
+    if (segmentRemainder-- > 0) {
+      threadArgs[i].segmentSize =
+          (i == num_cores - 1) ? dataSize - offset : segmentSize + 1;
+    } else {
+      threadArgs[i].segmentSize =
+          (i == num_cores - 1) ? dataSize - offset : segmentSize;
+    }
+    threadArgs[i].extraArgs = Args;
+    threadArgs[i].func = func;
+    printf("size of thread %d segment is %d\n", i, threadArgs[i].segmentSize);
+    if (thrd_create(&threads[i], threadFunc, &threadArgs[i]) != thrd_success) {
+      fprintf(stderr, "Error creating thread %d\n", i);
+      free(results);
+      return return_struct;
+    }
+    offset += threadArgs[i].segmentSize;
+  }
+
+  for (int i = 0; i < num_cores; i++) {
+    thrd_join(threads[i], NULL);
+    results[i] = threadArgs[i].result;
+  }
+  return_struct.data = results;
+  return_struct.num_data = num_cores;
+
+  return return_struct;
+}
+
 split_info split_data(unsigned int num_elements, unsigned int num_buckets) {
   // find a way to use more efficient splitting
   // algo , where you spread the remainder over the buckets
@@ -87,4 +149,4 @@ split_return split_work(void *list, size_t size_el, size_t num_el,
 
 #endif
 
-#endif // !SPLITTER_H
+#endif // !THREAD_SPLITTER_H

@@ -20,7 +20,7 @@
 #define PULOG_IMPLEMENTATION
 #include "pulog.h"
 
-#define SPLITTER_IMPLEMENTATION
+#define THREAD_SPLITTER_IMPLEMENTATION
 #include "splitter.h"
 
 #include <assert.h>
@@ -44,12 +44,6 @@ int calculateSum(void *arg) {
 
 int count_primes(void *arg) {
   ThreadArgs *args = (ThreadArgs *)arg;
-  return 0;
-}
-
-int threadFunc(void *arg) {
-  ThreadArgs *threadArgs = (ThreadArgs *)arg;
-  threadArgs->result = threadArgs->func(threadArgs);
   return 0;
 }
 
@@ -129,19 +123,6 @@ void *countPrimeSegment(void *arg) {
   return count;
 }
 
-void shuffle_array(uint32_t *array, size_t n) {
-  if (n > 1) {
-    size_t i;
-    for (i = 0; i < n - 1; i++) {
-      size_t j = i + rand() / (RAND_MAX / (n - 1) + 1);
-      j = j % n;
-      uint32_t t = array[j];
-      array[j] = array[i];
-      array[i] = t;
-    }
-  }
-}
-
 int main(int argc, char *argv[]) {
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "-llDEBUG") == 0) {
@@ -184,16 +165,17 @@ int main(int argc, char *argv[]) {
   printf("Total sum: %lld\n", totalSum);
   free(array);
   free(results.data);
+  free(multiplier);
 
-  size_t size = 100000000;
+  size_t size = 30535700;
   uint32_t *numarray = malloc(size * sizeof(uint32_t));
+  // populate array
   for (size_t i = 0; i < size; i++) {
     numarray[i] = i + 2;
   }
-  // shuffle_array(numarray, size);
 
-  par_return prime_results =
-      parallelize(numarray, size, sizeof(uint32_t), NULL, countPrimeSegment);
+  thread_split_ret prime_results =
+      thread_split(numarray, size, sizeof(uint32_t), NULL, countPrimeSegment);
   long long primeCount = 0;
   for (int i = 0; i < results.num_data; i++) {
     primeCount += *(long long *)prime_results.data[i];
