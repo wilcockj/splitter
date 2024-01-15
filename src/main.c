@@ -13,6 +13,12 @@
  *
  *
  */
+
+// TODO: add lots of regression tests to make sure we are getting good results
+// and keep same api
+
+// TODO: try to improve how the data is casted to avoid wrong data type bugs ;
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <sys/sysinfo.h>
@@ -54,7 +60,7 @@ void *countPrimeSegment(void *arg) {
   ThreadArgs *threadArgs = (ThreadArgs *)arg;
 
   int *dataSegment = (int *)threadArgs->dataSegment;
-  long long *count = malloc(sizeof(long long));
+  uint64_t *count = malloc(sizeof(uint64_t));
   *count = 0;
   for (size_t i = 0; i < threadArgs->segmentSize; i++) {
     *count += isPrime(dataSegment[i]);
@@ -63,6 +69,7 @@ void *countPrimeSegment(void *arg) {
 }
 
 int main(int argc, char *argv[]) {
+  uint32_t num = 0;
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "-llDEBUG") == 0) {
       set_loglevel(DEBUG);
@@ -70,6 +77,11 @@ int main(int argc, char *argv[]) {
       set_loglevel(WARNING);
     } else if (strcmp(argv[i], "-llERROR") == 0) {
       set_loglevel(ERROR);
+    } else if (strcmp(argv[i], "--prime_top") == 0) {
+      if (argc >= i + 1) {
+        int len = strlen(argv[i + 1]);
+        num = strtol(argv[i + 1], NULL, 10);
+      }
     }
   }
 
@@ -96,7 +108,11 @@ int main(int argc, char *argv[]) {
   free(results.data);
   free(multiplier);
 
-  size_t size = 1000000;
+  if (num == 0) {
+    printf("did not supply number for prime counting\n");
+    return 1;
+  }
+  size_t size = num;
   uint32_t *numarray = malloc(size * sizeof(uint32_t));
   // populate array
   for (size_t i = 0; i < size; i++) {
@@ -105,12 +121,12 @@ int main(int argc, char *argv[]) {
 
   thread_split_ret prime_results =
       thread_split(numarray, size, sizeof(uint32_t), NULL, countPrimeSegment);
-  long long primeCount = 0;
+  uint64_t primeCount = 0;
   for (int i = 0; i < results.num_data; i++) {
-    primeCount += *(long long *)prime_results.data[i];
+    primeCount += *(uint64_t *)prime_results.data[i];
     free(prime_results.data[i]);
   }
-  printf("Count of primes from 2-%zu = %lld\n", size + 2, primeCount);
+  printf("Count of primes from 2-%zu = %d\n", size + 2, primeCount);
   free(numarray);
   free(prime_results.data);
 
