@@ -15,10 +15,13 @@
  */
 #define PULOG_IMPLEMENTATION
 #include "pulog.h"
-#include <stdio.h>
+
+#define SPLITTER_IMPLEMENTATION
+#include "splitter.h"
+
+#include <assert.h>
 #include <string.h>
 int main(int argc, char *argv[]) {
-  printf("uhh\n");
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "-llDEBUG") == 0) {
       set_loglevel(DEBUG);
@@ -28,7 +31,17 @@ int main(int argc, char *argv[]) {
       set_loglevel(ERROR);
     }
   }
-  int test = 2;
-  LOG(DEBUG, "Parsed args %d\n", test);
+  unsigned int num_buckets = 4;
+  unsigned int num_elements = 16;
+  split_info info = split_data(num_elements, num_buckets);
+  assert(info.nominal_amt == 4);
+  assert(info.last_amt == 4);
+  printf("num of els = %zu nominal_amt = %zu\n", info.num_elements,
+         info.nominal_amt);
+  num_elements = 18;
+  info = split_data(num_elements, num_buckets);
+  printf("num of els = %zu nominal_amt = %d last_amt = %d\n", info.num_elements,
+         info.nominal_amt, info.last_amt);
+  LOG(DEBUG, "test debug log\n");
   return 0;
 }
