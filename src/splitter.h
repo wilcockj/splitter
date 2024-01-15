@@ -31,6 +31,8 @@ split_info split_data(unsigned int num_elements, unsigned int num_buckets) {
   info.last_amt = divided + remainder;
   return info;
 }
+
+// void split_work(void *list, size_t size_el, size_t num_el, function,...args)
 #endif
 
 #endif // !SPLITTER_H
