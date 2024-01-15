@@ -14,6 +14,7 @@
  *
  */
 #include <stdint.h>
+#include <stdlib.h>
 #include <sys/sysinfo.h>
 #include <threads.h>
 #define PULOG_IMPLEMENTATION
@@ -60,6 +61,7 @@ typedef struct par_return {
 par_return parallelize(void *data, size_t dataSize, size_t elementSize,
                        void *extraArgs, TaskFunction func) {
   int num_cores = get_nprocs();
+  printf("Splitting function amount %d thread\n", num_cores);
   thrd_t threads[num_cores];
   ThreadArgs threadArgs[num_cores];
   void **results = malloc(num_cores * sizeof(void *));
@@ -112,7 +114,6 @@ int isPrime(int num) {
       return 0;
     }
   }
-  printf("%d is prime\n", num);
   return 1;
 }
 
@@ -126,6 +127,19 @@ void *countPrimeSegment(void *arg) {
     *count += isPrime(dataSegment[i]);
   }
   return count;
+}
+
+void shuffle_array(uint32_t *array, size_t n) {
+  if (n > 1) {
+    size_t i;
+    for (i = 0; i < n - 1; i++) {
+      size_t j = i + rand() / (RAND_MAX / (n - 1) + 1);
+      j = j % n;
+      uint32_t t = array[j];
+      array[j] = array[i];
+      array[i] = t;
+    }
+  }
 }
 
 int main(int argc, char *argv[]) {
@@ -171,11 +185,13 @@ int main(int argc, char *argv[]) {
   free(array);
   free(results.data);
 
-  size_t size = 1000000;
+  size_t size = 100000000;
   uint32_t *numarray = malloc(size * sizeof(uint32_t));
   for (size_t i = 0; i < size; i++) {
     numarray[i] = i + 2;
   }
+  // shuffle_array(numarray, size);
+
   par_return prime_results =
       parallelize(numarray, size, sizeof(uint32_t), NULL, countPrimeSegment);
   long long primeCount = 0;
