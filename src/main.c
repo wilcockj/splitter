@@ -17,7 +17,7 @@
 // TODO: add lots of regression tests to make sure we are getting good results
 // and keep same api
 
-// TODO: try to improve how the data is casted to avoid wrong data type bugs ;
+// TODO: try to improve how the data is casted to avoid wrong data type bugs 
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -70,6 +70,7 @@ void *countPrimeSegment(void *arg) {
 
 int main(int argc, char *argv[]) {
   uint32_t num = 0;
+  uint16_t num_threads = 0;
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "-llDEBUG") == 0) {
       set_loglevel(DEBUG);
@@ -79,8 +80,11 @@ int main(int argc, char *argv[]) {
       set_loglevel(ERROR);
     } else if (strcmp(argv[i], "--prime_top") == 0) {
       if (argc >= i + 1) {
-        int len = strlen(argv[i + 1]);
         num = strtol(argv[i + 1], NULL, 10);
+      }
+    } else if (strcmp(argv[i], "--threads") == 0) {
+      if (argc >= i + 1) {
+        num_threads = strtol(argv[i + 1], NULL, 10);
       }
     }
   }
@@ -96,7 +100,7 @@ int main(int argc, char *argv[]) {
   int *multiplier = malloc(sizeof(int));
   *multiplier = 4;
   thread_split_ret results =
-      thread_split(array, arraySize, sizeof(int), multiplier, sumSegment);
+      thread_split(array, arraySize, sizeof(int), multiplier, sumSegment, num_threads);
   long long totalSum = 0;
   for (int i = 0; i < results.num_data; i++) {
     totalSum += *(long long *)results.data[i];
@@ -120,7 +124,7 @@ int main(int argc, char *argv[]) {
   }
 
   thread_split_ret prime_results =
-      thread_split(numarray, size, sizeof(uint32_t), NULL, countPrimeSegment);
+      thread_split(numarray, size, sizeof(uint32_t), NULL, countPrimeSegment, num_threads);
   uint64_t primeCount = 0;
   for (int i = 0; i < results.num_data; i++) {
     primeCount += *(uint64_t *)prime_results.data[i];

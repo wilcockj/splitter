@@ -21,7 +21,7 @@ typedef struct thread_split_ret {
 } thread_split_ret;
 
 thread_split_ret thread_split(void *data, size_t dataSize, size_t elementSize,
-                              void *Args, ThreadSplitFunction func);
+                              void *Args, ThreadSplitFunction func, uint16_t num_threads);
 #ifdef THREAD_SPLITTER_IMPLEMENTATION
 #include <assert.h>
 #include <stdio.h>
@@ -33,8 +33,11 @@ int threadFunc(void *arg) {
   return 0;
 }
 thread_split_ret thread_split(void *data, size_t dataSize, size_t elementSize,
-                              void *Args, ThreadSplitFunction func) {
+                              void *Args, ThreadSplitFunction func, uint16_t num_threads) {
   int num_cores = get_nprocs();
+  if(num_threads!= 0){
+    num_cores = num_threads;
+  }
   thrd_t threads[num_cores];
   ThreadArgs threadArgs[num_cores];
   void **results = malloc(num_cores * sizeof(void *));
