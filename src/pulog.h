@@ -18,7 +18,7 @@ void set_loglevel(LogLevel level);
 #define LOG(level, msg, ...)                                                   \
   pulog(level, __FILE__, __LINE__, msg, ##__VA_ARGS__)
 
-static LogLevel LOG_LEVEL = DEBUG;
+static LogLevel LOG_LEVEL = DEBUG; // default level debug
 
 void set_loglevel(LogLevel level) { LOG_LEVEL = level; }
 
