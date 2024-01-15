@@ -13,6 +13,7 @@ void set_loglevel(LogLevel level);
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #define LOG(level, msg, ...)                                                   \
   pulog(level, __FILE__, __LINE__, msg, ##__VA_ARGS__)
@@ -34,6 +35,12 @@ void pulog(LogLevel level, const char *file, const int line_number,
   }
   printf("\033[0m");
 
+  time_t now = time(NULL);
+  struct tm tm_now;
+  localtime_r(&now, &tm_now);
+  char buff[100];
+  strftime(buff, sizeof(buff), "%T", &tm_now);
+  printf("%s: ", buff);
   printf("%s:%d: ", file, line_number);
 
   va_list args;
