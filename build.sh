@@ -1,1 +1,1 @@
-gcc -fsanitize=address -O3 -ggdb src/*.c -o splitter
+gcc -fsanitize=address -fsanitize=null -O3 -ggdb src/*.c -o splitter
