@@ -17,7 +17,7 @@
 // TODO: add lots of regression tests to make sure we are getting good results
 // and keep same api
 
-// TODO: try to improve how the data is casted to avoid wrong data type bugs 
+// TODO: try to improve how the data is casted to avoid wrong data type bugs
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -65,11 +65,13 @@ void *countPrimeSegment(void *arg) {
   for (size_t i = 0; i < threadArgs->segmentSize; i++) {
     *count += isPrime(dataSegment[i]);
   }
+  LOG(DEBUG, "Thread %d is finished with counting primes\n",
+      threadArgs->thread_num);
   return count;
 }
 
 int main(int argc, char *argv[]) {
-  uint32_t num = 0;
+  uint32_t prime_top = 0;
   uint16_t num_threads = 0;
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "-llDEBUG") == 0) {
@@ -80,11 +82,13 @@ int main(int argc, char *argv[]) {
       set_loglevel(ERROR);
     } else if (strcmp(argv[i], "--prime_top") == 0) {
       if (argc >= i + 1) {
-        num = strtol(argv[i + 1], NULL, 10);
+        prime_top = strtol(argv[i + 1], NULL, 10);
+        LOG(DEBUG, "Setting prime top to use to %d\n", prime_top);
       }
     } else if (strcmp(argv[i], "--threads") == 0) {
       if (argc >= i + 1) {
         num_threads = strtol(argv[i + 1], NULL, 10);
+        LOG(DEBUG, "Setting number of threads to use to %d\n", num_threads);
       }
     }
   }
@@ -99,8 +103,8 @@ int main(int argc, char *argv[]) {
   }
   int *multiplier = malloc(sizeof(int));
   *multiplier = 4;
-  thread_split_ret results =
-      thread_split(array, arraySize, sizeof(int), multiplier, sumSegment, num_threads);
+  thread_split_ret results = thread_split(array, arraySize, sizeof(int),
+                                          multiplier, sumSegment, num_threads);
   long long totalSum = 0;
   for (int i = 0; i < results.num_data; i++) {
     totalSum += *(long long *)results.data[i];
@@ -112,19 +116,19 @@ int main(int argc, char *argv[]) {
   free(results.data);
   free(multiplier);
 
-  if (num == 0) {
+  if (prime_top == 0) {
     printf("did not supply number for prime counting\n");
     return 1;
   }
-  size_t size = num;
+  size_t size = prime_top;
   uint32_t *numarray = malloc(size * sizeof(uint32_t));
   // populate array
   for (size_t i = 0; i < size; i++) {
     numarray[i] = i + 2;
   }
 
-  thread_split_ret prime_results =
-      thread_split(numarray, size, sizeof(uint32_t), NULL, countPrimeSegment, num_threads);
+  thread_split_ret prime_results = thread_split(
+      numarray, size, sizeof(uint32_t), NULL, countPrimeSegment, num_threads);
   uint64_t primeCount = 0;
   for (int i = 0; i < results.num_data; i++) {
     primeCount += *(uint64_t *)prime_results.data[i];
