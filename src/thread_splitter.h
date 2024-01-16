@@ -1,8 +1,7 @@
 #ifndef THREAD_SPLITTER_H
 #define THREAD_SPLITTER_H
 
-#include <stdlib.h>
-#include <sys/sysinfo.h>
+#include <stdint.h>
 #include <threads.h>
 
 typedef void *(*ThreadSplitFunction)(void *);
@@ -12,6 +11,7 @@ typedef struct {
   size_t segmentSize;
   void *extraArgs;
   void *result;
+  uint32_t thread_num;
   ThreadSplitFunction func;
 } ThreadArgs;
 
@@ -21,11 +21,13 @@ typedef struct thread_split_ret {
 } thread_split_ret;
 
 thread_split_ret thread_split(void *data, size_t dataSize, size_t elementSize,
-                              void *Args, ThreadSplitFunction func, uint16_t num_threads);
+                              void *Args, ThreadSplitFunction func,
+                              uint16_t num_threads);
 #ifdef THREAD_SPLITTER_IMPLEMENTATION
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/sysinfo.h>
 
 int threadFunc(void *arg) {
   ThreadArgs *threadArgs = (ThreadArgs *)arg;
@@ -33,9 +35,10 @@ int threadFunc(void *arg) {
   return 0;
 }
 thread_split_ret thread_split(void *data, size_t dataSize, size_t elementSize,
-                              void *Args, ThreadSplitFunction func, uint16_t num_threads) {
+                              void *Args, ThreadSplitFunction func,
+                              uint16_t num_threads) {
   int num_cores = get_nprocs();
-  if(num_threads!= 0){
+  if (num_threads != 0) {
     num_cores = num_threads;
   }
   thrd_t threads[num_cores];
@@ -65,6 +68,7 @@ thread_split_ret thread_split(void *data, size_t dataSize, size_t elementSize,
     }
     threadArgs[i].extraArgs = Args;
     threadArgs[i].func = func;
+    threadArgs[i].thread_num = i;
     printf("size of thread %d segment is %d\n", i, threadArgs[i].segmentSize);
     if (thrd_create(&threads[i], threadFunc, &threadArgs[i]) != thrd_success) {
       fprintf(stderr, "Error creating thread %d\n", i);
